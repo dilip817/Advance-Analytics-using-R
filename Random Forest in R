@@ -1,0 +1,40 @@
+designed to prediction accuracy of CART, but reduces inpretability
+
+Each tree to be split on only a random subset of variables
+
+install.packages("randomForest")
+library(randomForest)
+
+sf = randomForest(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, nodesize = 25, ntrees = 200)
+
+?as.factor
+
+# Random forest doesn't have a classification type, so need to conver taget variables into factor for classification problem
+Train$Reverse = as.factor(Train$Reverse)
+Test$Reverse = as.factor(Test$Reverse)
+
+sf = randomForest(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, nodesize = 25, ntrees = 200)
+
+pf = predict(sf, newdata = Test)
+table(Test$Reverse, pf)
+
+# RF improves accuracy over CART - ramdom components, so might get different results
+(41+75)/(41+75+36+18)
+
+# K-fold Cross Validation, use Complexity Parameter(cp) - small value bigger tree/overfitting, large - model too simple
+
+install.packages("caret")
+library("caret")
+
+install.packages("e1071")
+library("e1071")
+
+# CV -> use cross validation and 10 trees
+fitControl = trainControl(method="cv", number =10)
+cartGrid = expand.grid(.cp=(1:50)*0.01)
+train(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method="rpart", trControl = fitControl, tuneGrid = cartGrid)
+
+StevensTreeCV = rpart(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, method = "class", data = Train, control = rpart.control(cp=0.18))
+PredictCV = predict(StevensTreeCV, newdata = Test, type = "class")
+
+table(Test$Reverse,PredictCV)
