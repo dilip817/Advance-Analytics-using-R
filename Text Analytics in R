@@ -1,0 +1,75 @@
+# 1) Twitter
+
+# to wrok with text stringsAsFactors=FALSE, so text is read properly
+tweets <- read.csv("tweets.csv", stringsAsFactors=FALSE)
+str(tweets)
+
+tweets$negative = as.factor(tweets$Avg <= -1)
+table(tweets$negative)
+
+# Text mining package - tm
+install.packages("tm")
+library(tm)
+
+# helps to use tm package
+install.packages("SnowballC")
+
+library(SnowballC)
+
+tweets$Tweet[1]
+
+#Corpus - Representing and computing on corpora.collections of documents containing (natural language) text
+# VectorSource - interprets each element of the vector x as a document
+
+corpus = Corpus(VectorSource(tweets$Tweet))
+corpus[[1]]
+
+corpus = tm_map(corpus, tolower)
+corpus = tm_map(corpus, toupper)
+
+corpus = tm_map(corpus, removePunctuation)
+
+stopwords("english")[1:10]
+
+corpus = tm_map(corpus, removeWords, c("apple", stopwords("english")))
+
+#remove stem words (er,e etc.)
+
+corpus = tm_map(corpus, stempDocument)
+
+corpus = tm_map(corpus, removePunctuation)
+frequencies = DocumentTermMatrix(corpus)
+
+inspect(frequencies[1000:1005, 505:515])
+
+findFreqTerms(frequencies, lowfreq = 20)
+
+sparse = removeSparseTerms(frequencies, .995)
+
+tweetsSparse = as.data.frame(as.matrix(sparse))
+colnames(tweetsSparse) = make.names(colnames(tweetsSparse))
+
+tweetsSparse$Negative = tweets$negative
+
+library(caTools)
+set.seed(123)
+split = sample.split(tweetsSparse$Negative, SplitRatio=0.7)
+trainSparse = subset(tweetsSparse, split ==TRUE )
+testSparse = subset(tweetsSparse, split ==FALSE )
+
+library(rpart)
+library(rpart.plot)
+
+tweetCART = rpart(Negative ~ ., data = trainSparse, method = "class")
+prp(tweetCART)
+
+predictCART = predict(tweetCART, newdata = testSparse, type="class")
+table(testSparse$Negative, predictCART)
+
+table(testSparse$Negative)
+
+library(randomForest)
+set.seed(123)
+tweetRF = randomForest(Negative ~ ., data = trainSparse)
+predictRF = predict(tweetRF, newdata=testSparse)
+table(testSparse$Negative, predictRF)
