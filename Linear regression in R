@@ -1,0 +1,115 @@
+wine= read.csv("wine.csv")
+
+str(wine)
+
+summary(wine)
+
+model1 = lm(Price ~ AGST, data = wine)
+
+summary(model1)
+
+model1$residuals
+
+SSE = sum(model1$residuals^2)
+
+model2 = lm(Price ~ AGST + HarvestRain, data=wine)
+summary(model2)
+
+SSE = sum(model2$residuals^2)
+
+model3 = lm(Price ~ AGST+HarvestRain+WinterRain+Age+FrancePop, data=wine)
+summary(model3)
+
+SSE = sum(model3$residuals^2)
+
+model4 = lm(Price ~ AGST+HarvestRain+WinterRain+Age, data=wine)
+summary(model4)
+
+SSE = sum(model4$residuals^2)
+
+# Check multicollinearity 
+
+cor(wine$WinterRain,wine$Price)
+cor(wine$WinterRain,wine$FrancePop)
+cor(wine)
+
+model5 = lm(Price ~ AGST+HarvestRain+WinterRain, data=wine)
+summary(model5)
+
+#Out of sample accuracy
+
+wineTest = read.csv("wine_test.csv")
+
+str(wineTest)
+
+predictTest = predict(model4,newdata=wineTest)
+
+SSE = sum((wineTest$Price - predictTest)^2)
+SST = sum((wineTest$Price - mean(wine$Price))^2)
+
+Rsqr = 1-SSE/SST
+
+# Model Rsqr amd Test Rsqr should be good
+
+# Moneyball game analytics - Sabermetrics
+
+baseball = read.csv("baseball.csv")
+
+str(baseball)
+
+moneyball = subset(baseball,Year < 2002)
+str(moneyball)
+
+#Run Difference, RS = Eun Scored, RA = Run Allowed
+moneyball$RD = moneyball$RS- moneyball$RA
+
+winsreg = lm(formula = W ~ RD, data=moneyball)
+
+summary(winsreg)
+
+str(moneyball)
+
+RunsReg = lm(RS ~ OBP + SLG + BA, data = moneyball)
+summary(RunsReg)
+
+# IF Coeff is negative, overvalued / counter intutive
+
+RunsReg = lm(RS ~ OBP + SLG, data = moneyball)
+
+OOBP = lm(RS ~ OBP + SLG, data = moneyball)
+
+anova(OOBP)
+
+NBA = read.csv("NBA_train.csv")
+
+str(NBA)
+
+table(NBA$W, NBA$Playoffs)
+
+NBA$pointsdiff = NBA$PTS - NBA$oppPTS
+plot(NBA$pointsdiff, NBA$W)
+
+WinsReg = lm(W ~ pointsdiff, data = NBA)
+WinsReg = lm(W ~ pointsdiff, data = NBA)
+
+
+summary(WinsReg)
+
+SSE = sum(WinsReg$residuals^2)
+RMSE = sqrt(SSE/nrow(NBA))
+
+anova(OOBP)
+
+NBA_test = read.csv("NBA_test.csv")
+
+PointsReg4 = lm (PTS ~ X2PA+X3PA+FTA+AST+ORB+STL, data=NBA)
+
+summary(PointsReg4)
+
+PointsPredictions = predict(PointsReg4, newdata = NBA_test)
+
+SSE = sum((PointsPredictions - NBA_test$PTS)^2)
+SST = sum((NBA_test$PTS-mean(NBA$PTS))^2)
+R2 = 1-SSE/SST
+
+RMSE = sqrt(SSE/nrow(NBA_test))
