@@ -1,0 +1,114 @@
+#Hierarchical
+
+movies = ?read.table("movie.txt", header = FALSE, sep = "|", quote= "\"")
+str(movies)
+
+colnames(movies) = c("Id", "Title", "ReleaseDate", "VideoReleaseDate", "IMDB", "Unknown", "Action", "Adventure", "Animation", "Childrens", "Comedy", "Crime", "Documentary", "Drama", "Fantasy", "FilmNoir", "Horror", "Musical", "Mystery", "Romance", "SciFi", "Thriller", "War", "Western")
+
+# remove variables
+movies$Id = NULL
+movies$ReleaseDate = NULL
+movies$VideoReleaseDate = NULL
+movies$IMDB = NULL
+movies = unique(movies)
+
+distances = dist(movies[2:20], method = "euclidean")
+str(distances)
+
+clusterMovies = hclust(distances, method = "ward.D")
+
+#plot Dendrogram
+plot(clusterMovies)
+
+# pick clusters from understanding of the problem
+# cutree - Cut a Tree into Groups of Data
+clusterGroups = cutree(clusterMovies, k=10)
+
+# Apply a function to each (non-empty) group of values given by a unique combination of the levels of certain factors.
+tapply(movies$Action, clusterGroups,mean)
+tapply(movies$Romance, clusterGroups,mean)
+
+subset(movies, Title =="Men in Black (1997)")
+
+clusterGroups[257]
+
+clsuter2 = subset(movies, clusterGroups == 2)
+clsuter2$Title[1:10]
+
+# Image processing
+flower = read.csv("flower.csv", header = FALSE)
+str(flower)
+
+flowerMatrix = as.matrix(flower)
+str(flowerMatrix)
+flowerVector = as.vector(flowerMatrix)
+str(flowerVector)
+
+distance = dist(flowerVector, method = "euclidean")
+str(distance)
+
+clusterIntensity = hclust(distance, method = "ward.D")
+
+#Plots Dendrogram
+plot(clusterIntensity)
+rect.hclust(clusterIntensity, k=3, border="red")
+
+
+flowerClusters = cutree(clusterIntensity, k=3)
+tapply(flowerVector, flowerClusters, mean)
+dim(flowerClusters) = c(50, 50)
+image(flowerClusters, axes = FALSE)
+
+image(flowerMatrix, axes = FALSE, col = grey(seq(0,1,lenght = 256)))
+
+# clustering with K-mean
+
+healthy = read.csv("healthy.csv", header = FALSE)
+healthyMatrix = as.matrix(healthy)
+str(healthyMatrix)
+
+image(healthyMatrix, axes = FALSE, col = grey(seq(0,1,leanght=256)))
+
+healthyVector = as.vector(healthyMatrix)
+distance = dist(healthyVector, method = "euclidean")
+
+str(healthyVector)
+n = 365636
+
+n*(n-1)/2
+
+#When data gets very huge and R doesn't support, then use K-mean clustering
+Setting k depends on business understanding
+
+k = 5
+set.seed(1) 
+
+kmc = kmeans(healthyVector, centers = k, iter.max = 1000)
+str(kmc)
+
+healthyClusters = kmc$cluster
+kmc$centers[2]
+mc$size[3]
+
+# convert vector into Matrix
+dim(healthyClusters) = c(nrow(healthyMatrix),ncol(healthyMatrix))
+
+image(healthyClusters, axes = FALSE, col=rainbow(k))
+
+# use clusters for predictive analytics
+# healthyVector as a training set and tumorVector as testing set
+
+tumor = read.csv("tumor.csv", header = FALSE)
+tumorMaxtrix = as.matrix(tumor)
+tumorVector = as.vector(tumorMaxtrix)
+
+install.packages("flexclust")
+library(flexclust)
+# contains class kcca - K-centric clsutering analysis
+
+kmc.kcca = as.kcca(kmc, healthyVector)
+tumorClusters = predict(kmc.kcca, newdata = tumorVector)
+
+dim(tumorClusters) = c(nrow(tumorMaxtrix), ncol(tumorMaxtrix))
+
+image(tumorClusters, axes = FALSE, col=rainbow(k))
