@@ -1,0 +1,138 @@
+# Baseline - highest percentage in training data
+
+quality = read.csv("quality.csv")
+
+str(quality)
+
+table(quality$PoorCare)
+
+install.packages("caTools")
+
+library(caTools)
+
+# initializes random number generator
+set.seed(88)
+
+# sample.split ensures that 75% of data in training set and 
+#outcome variable is equally split between  training and testing
+
+split = sample.split(quality$PoorCare, SplitRatio = .75)
+qualityTrain = subset(quality, split == TRUE)
+qualityTest = subset(quality, split == FALSE)
+
+nrow(qualityTrain)
+nrow(qualityTest)
+
+QualityLog = glm(PoorCare ~ OfficeVisits + Narcotics, data = qualityTrain, family = binomial)
+
+summary(QualityLog)
+
+# AIC measures the quality of the model, preferred low value, 
+# can only be compared between models in the same dataset
+
+# Predict probabilities
+predictTrain = predict(QualityLog, type="response")
+summary(predictTrain)
+
+tapply(predictTrain, qualityTrain$PoorCare, mean)
+
+# Threshod value T = 0.5
+
+table(qualityTrain$PoorCare, predictTrain> 0.5)
+
+table(qualityTrain$PoorCare, predictTrain> 0.7)
+
+table(qualityTrain$PoorCare, predictTrain> 0.2)
+
+# Receiver Operator Characteristic (ROC) Curve
+
+install.packages("ROCR")
+
+library(ROCR)
+
+ROCRpred = prediction(predictTrain, qualityTrain$PoorCare)
+
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+plot(ROCRperf)
+plot(ROCRperf,colorize= TRUE)
+plot(ROCRperf,colorize= TRUE, print.cutoffs.at=seq(0,1,0.1),text.adj = c(-0.2,1.7))
+
+# Multicollinearity - do the coeff signs makes sense, Significance - Area under the curve in ROC
+
+
+#---------------------> Logistic model2
+
+frm = read.csv("framingham.csv")
+library(caTools)
+set.seed(1000)
+split = sample.split(frm$TenYearCHD, SplitRatio = 0.65)
+train = subset(frm, split ==TRUE)
+test = subset(frm, split ==FALSE)
+
+frmlog = glm(TenYearCHD ~ ., data=train, family = binomial)
+summary(frmlog)
+
+#predict() uses above log model and predict values on test data
+
+predictTest = predict(frmlog, type = "response", newdata=test)
+
+#Confusion matrix on test data -  actual v/s predicted
+table(test$TenYearCHD, predictTest> 0.5)
+
+# ROC curve on test data
+library(ROCR)
+ROCRpred = prediction(predictTest, test$TenYearCHD)
+
+# AUC value
+as.numeric(performance(ROCRpred, "auc")@y.values)
+
+
+# US Election
+
+polling = read.csv("PollingData.csv")
+
+table(polling$Year)
+
+summary(polling)
+
+install.packages("mice")
+library("mice")
+
+simple = polling[c("Rasmussen", "SurveyUSA", "PropR", "DiffCount")]
+
+set.seed(144)
+
+imputed = complete(mice(simple))
+summary(imputed)
+
+polling$Rasmussen = imputed$Rasmussen
+polling$SurveyUSA = imputed$SurveyUSA
+
+Train = subset(polling, Year == 2004 | Year ==2008)
+Test = subset(polling, Year == 2012)
+
+table(Train$Republican)
+
+#Baseline model has an accuracy of 53%
+#0  1 
+#47 53 
+
+sign(20)
+sign(-1)
+sign(0)
+
+table(sign(Train$Rasmussen))
+
+table(Train$Republican, sign(Train$Rasmussen))
+
+Mod1 = glm(Republican ~ PropR, data = Train, family= "binomial")
+
+pred1 = predict(Mod1, type = "response")
+table(Train$Republican, pred1>=0.5)
+
+Mod2 = glm(Republican ~ SurveyUSA+DiffCount, data = Train, family= "binomial")
+pred2 = predict(Mod2, type = "response")
+summary(Mod2)
+
+table(Test$Republican, sign(Test$Rasmussen))
+TestPrediction = predict(Mod2, newdata = Test, type = "response")
