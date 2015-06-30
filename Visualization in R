@@ -1,0 +1,189 @@
+# type of plot, aesthetic, and geomatric
+
+who = read.csv("WHO.csv")
+str(who)
+
+# Scatter plot
+plot(who$GNI, who$FertilityRate)
+
+install.packages("ggplot2")
+library(ggplot2)
+
+scatterplot = ggplot(who, aes(x = GNI, y = FertilityRate))
+
+scatterplot + geom_point()
+scatterplot + geom_line()
+scatterplot + geom_point(color = "blue", size =3, shape = 17)
+scatterplot + geom_point(color = "darkred", size =3, shape = 8)
+scatterplot + geom_point(color = "darkred", size =3, shape = 8) + ggtitle("Fertility Rate v/s GNI")
+
+fertilityGNIplot = scatterplot + geom_point(color = "darkred", size =3, shape = 8) + ggtitle("Fertility Rate v/s GNI")
+pdf("MyPlot.pdf")
+print(fertilityGNIplot)
+dev.off()
+
+# color by factor variable (factor)
+ggplot(who, aes(x=GNI, y=FertilityRate, color = Region)) + geom_point()
+# color by factor variable (continuous)
+ggplot(who, aes(x=GNI, y=FertilityRate, color = LifeExpectancy)) + geom_point()
+
+ggplot(who, aes(x=FertilityRate, y= Under15)) + geom_point()
+
+ggplot(who, aes(x=log(FertilityRate), y= Under15)) + geom_point()
+
+model = lm(Under15 ~ log(FertilityRate), data = who)
+summary(model)
+
+#regression line with 95% confidence interval
+ggplot(who, aes(x=log(FertilityRate), y= Under15)) + geom_point() + stat_smooth(method = "lm")
+
+ggplot(who, aes(x=log(FertilityRate), y= Under15)) + geom_point() + stat_smooth(method = "lm", level =.99)
+
+ggplot(who, aes(x=log(FertilityRate), y= Under15)) + geom_point() + stat_smooth(method = "lm", se = FALSE, color = "orange")
+
+
+# stringsAsFactors - to read text field properly
+mvt = read.csv("mvt.csv", stringsAsFactors = FALSE)
+str(mvt)
+
+mvt$Date = strptime(mvt$Date, format="%m/%d/%y %H:%M")
+mvt$Weekday = weekdays(mvt$Date)
+mvt$Hour = mvt$Date$hour
+
+weekdayCounts = as.data.frame(table(mvt$Weekday))
+str(weekdayCounts)
+
+library(ggplot2)
+
+# group=1 --> allows grouping of data
+ggplot(weekdayCounts, aes(x = Var1, y = Freq)) + geom_line(aes(group=1))
+weekdayCounts$Var1 = factor(weekdayCounts$Var1, ordered = TRUE, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+ggplot(weekdayCounts, aes(x = Var1, y = Freq)) + geom_line(aes(group=1)) + xlab("Day of the week") + ylab("Total Motor vehicle thefts")
+
+#day fo the week
+table(mvt$Weekday, mvt$Hour)
+
+DayHourCounts = as.data.frame(table(mvt$Weekday, mvt$Hour))
+str(DayHourCounts)
+DayHourCounts$Hour = as.numeric(as.character(DayHourCounts$Var2))
+
+# group= Var1 --> allows groping by day of the week
+ggplot(DayHourCounts, aes(x=Hour, y = Freq)) + geom_line(aes(group = Var1))
+ggplot(DayHourCounts, aes(x=Hour, y = Freq)) + geom_line(aes(group = Var1,color = Var1, size =2))
+
+# Heatmap
+DayHourCounts$Var1 = factor(DayHourCounts$Var1, ordered = TRUE, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+ggplot(DayHourCounts, aes(x=Hour, y = Var1)) + geom_tile(aes(fill=Freq)) + scale_fill_gradient(name="Total MV Thefts",low="white", high ="red") + theme(axis.title.y=element_blank())
+
+
+# Maps
+
+install.packages("maps")
+library(maps)
+
+install.packages("ggmap")
+library(ggmap)
+chicago = get_map(location= "chicago", zoom=11)
+ggmap(chicago)
+
+ggmap(chicago) + geom_point(data=mvt[1:100,], aes(x = Longitude, y= Latitude))
+
+LatLonCounts = as.data.frame(table(round(mvt$Longitude,2), round(mvt$Latitude,2)))
+str(LatLonCounts)  
+
+LatLonCounts$Long = as.numeric(as.character(LatLonCounts$Var1))
+LatLonCounts$Lat = as.numeric(as.character(LatLonCounts$Var2))
+ggmap(chicago) + geom_point(data = LatLonCounts, aes(x = Long, y = Lat, color = Freq, size = Freq))
+ggmap(chicago) + geom_point(data = LatLonCounts, aes(x = Long, y = Lat, color = Freq, size = Freq)) + scale_color_gradient(low="yellow", high="red")
+                                                                                                                               
+ggmap(chicago) + geom_tile(data = LatLonCounts, aes(x = Long, y = Lat, alpha = Freq, fill ="red"))
+
+#--------------------- Heatmap on US
+
+murders = read.csv("murders.csv")
+str(murders)
+
+#install.packages("rworldmap")
+#library(rworldmap)
+
+statesMap = map_data("state")
+str(statesMap)
+
+ggplot(statesMap, aes(x = long, y = lat, group=group)) + geom_polygon(fill = "white", color = "black") + coord_map("mercator")
+murders$region = tolower(murders$State)
+murderMap = merge(statesMap, murders, by = "region")
+str(murderMap)
+
+ggplot(murderMap, aes(x = long, y = lat, fill = Murders)) + geom_polygon(color="black") + scale_fill_gradient(low = "black", high = "red", guide = "legend")
+ggplot(murderMap, aes(x = long, y = lat, fill = Population)) + geom_polygon(color="black") + scale_fill_gradient(low = "black", high = "red", guide = "legend")
+
+murderMap$MurderRate = murderMap$Murders / murderMap$Population * 100000
+
+ggplot(murderMap, aes(x = long, y = lat, fill = MurderRate)) + geom_polygon(color="black") + scale_fill_gradient(low = "black", high = "red", guide = "legend")
+ggplot(murderMap, aes(x = long, y = lat, fill = MurderRate)) + geom_polygon(color="black") + scale_fill_gradient(low = "black", high = "red", guide = "legend", limits = c(0.9,10))
+
+
+----------------------> extra visualization
+
+# Bar
+
+intl = read.csv("intl.csv")
+str(intl)
+
+ggplot(intl, aes(x = Region, y = PercentOfIntl)) + geom_bar(stat="identity") + geom_text(aes(label=PercentOfIntl))
+
+ggplot(intl, aes(x = Region, y = PercentOfIntl)) + geom_bar(stat="identity") + geom_text(aes(label=PercentOfIntl))
+
+intl = transform(intl, Region = reorder(Region, -PercentOfIntl))
+str(intl)
+intl$PercentOfIntl = intl$PercentOfIntl*100
+
+#  vjust=-.4; negative values moves down, and positive moves up
+ggplot(intl, aes(x = Region, y = PercentOfIntl)) + geom_bar(stat="identity", fill = "dark blue") + geom_text(aes(label=PercentOfIntl), vjust=-.4) + ylab("percentage of International Students") + theme(axis.title.x = element_blank(), axis.text.x=element_text(angle = 45, hjust=1))
+
+
+----------------------> 
+  
+intlall = read.csv("intlall.csv", stringsAsFactors = FALSE)
+library(ggmap)
+str(intlall)
+head(intlall)
+
+intlall[is.na(intlall)] = 0
+
+world_map = map_data("world")
+str(world_map)
+
+world_map = merge(world_map, intlall, by.x = "region", by.y = "Citizenship")
+
+ggplot(world_map, aes(x = long, y = lat, group = group)) + geom_polygon(fill="white", color="black") + coord_map("mercator")
+
+world_map = world_map[order(world_map$group, world_map$order),]
+
+table(intlall$Citizenship)
+
+intlall$Citizenship[intlall$Citizenship == "China (People's Republic Of)"]= "China"
+
+ggplot(world_map, aes(x = long, y = lat, group = group)) + geom_polygon(aes(fill=Total), color="black") + coord_map("mercator")
+
+ggplot(world_map, aes(x = long, y = lat, group = group)) + geom_polygon(aes(fill=Total), color="black") + coord_map("ortho", orientation=c(20,30,0))
+ggplot(world_map, aes(x = long, y = lat, group = group)) + geom_polygon(aes(fill=Total), color="black") + coord_map("ortho", orientation=c(-37,175,0))
+
+------------------------>
+
+hh = read.csv("households.csv")
+str(hh)
+
+#challege to put data into ggplot aes()
+# year group fraction
+install.packages("reshape2")
+library(reshape2)
+hh[,1:2]
+
+head(melt(hh, id="Year"))
+
+melt(hh, id="Year")[1:10,]
+  
+ggplot(melt(hh, id="Year"), aes(x = Year, y = value, group = variable, color=variable)) + geom_line(size=2) + geom_point(size=5) + ylab("% of house")
