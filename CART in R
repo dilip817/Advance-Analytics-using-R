@@ -1,0 +1,34 @@
+stevens = read.csv("stevens.csv")
+str(stevens)
+set.seed(3000)
+
+split = sample.split(stevens$Reverse, SplitRatio = 0.7)
+Train = subset(stevens, split == TRUE)
+Test = subset(stevens, split == FALSE)
+
+install.packages("rpart")
+library("rpart")
+install.packages("rpart.plot")
+library("rpart.plot")
+
+# method = "class" to enforce that we are solving classification proble, as trees can also be used for regression problems
+StevensTree = rpart(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method = "class", control = rpart.control(minbucket=25))
+prp(StevensTree)
+
+#a) Check Prediction Power - Confusion Matrix and RoC curve
+PredictCART = predict(StevensTree, newdata = Test, type="class")
+table(Test$Reverse, PredictCART)
+
+Accuracy = (41+71)/(41+36+22+71)
+
+install.packages("ROCR")
+library("ROCR")
+
+PredictROC = predict(StevensTree, newdata = Test)
+
+# two columsn for each of test set (0/1 % of training set data had output 1/1 in training)
+PredictROC
+
+pred = prediction(PredictROC[,2], Test$Reverse)
+dperf = performance(pred, "tpr", "fpr")
+plot(perf)
